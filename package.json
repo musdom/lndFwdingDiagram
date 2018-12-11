@@ -1,0 +1,11 @@
+{
+    "name": "lndFwdingDiagram",
+    "version": "1.0.0",
+    "description": "small webservice that shows the lnd forwarding history as a sankey diagram",
+    "main": "index.js",
+    "author": "Hans-Peter Bock <hpbock@avaapgh.de>",
+    "license": "MIT",
+    "scripts": {
+        "start": "node index.js"
+    }
+}
