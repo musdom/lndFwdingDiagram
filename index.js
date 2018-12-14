@@ -1,6 +1,7 @@
 const fs = require('fs');
 const grpc = require('grpc');
 const lnrpc = grpc.load('rpc.proto').lnrpc;
+const express = require('express');
 
 const program = require('commander');
 program
@@ -52,25 +53,50 @@ lightning.getInfo(request, function(err, response) {
     }
 });
 
-var request = {}
-lightning.forwardingHistory(request, function(err, response) {
-    console.log(response);
-    var forwards = {}
-    for (var n in response.forwarding_events) {
-        var event = response.forwarding_events[n];
-        fromChannel = event.chan_id_in + ' ';
-        toChannel = ' ' + event.chan_id_out;
-        amount = 0.01 * parseInt(event.amt_out);
-        key = fromChannel + toChannel;
-        value = [fromChannel, toChannel, amount + (((forwards[key] || 0)[2]) || 0.0)];
-        forwards[key] = value;
-    }
-    console.log(forwards);
+var app = express();
+var server = require('http').createServer(app);
 
-    var data = [];
-    for (var k in forwards) {
-        data.push(forwards[k]);
-    }
-    console.log(data);
-
+// app.use(express.static(__dirname + '/node_modules'));
+app.get('/', function(req, res, next) {
+    res.sendFile(__dirname + '/index.html');
 });
+
+app.get('/data', function(req, res, next) {
+    getSankeyData(function(err, data) {
+        if (err) {
+            res.send(500, { error: 'request failed' });
+        } else {
+            res.send(data);
+        }
+    })
+});
+
+function getSankeyData(callback) {
+    var request = {
+        start_time: 0,
+        end_time: 1544821300
+    }
+    lightning.forwardingHistory(request, function(err, response) {
+        if (err) {
+            callback(err);
+        } else {
+            var forwards = {}
+            for (var n in response.forwarding_events) {
+                var event = response.forwarding_events[n];
+                fromChannel = event.chan_id_in + ' ';
+                toChannel = ' ' + event.chan_id_out;
+                amount = 0.01 * parseInt(event.amt_out);
+                key = fromChannel + toChannel;
+                value = [fromChannel, toChannel, amount + (((forwards[key] || 0)[2]) || 0.0)];
+                forwards[key] = value;
+            }
+
+            var data = [];
+            for (var k in forwards) {
+                data.push(forwards[k]);
+            }
+            callback(null, data);
+        }
+    });
+}
+server.listen(4201);
