@@ -40,7 +40,37 @@ const macaroonCreds = grpc.credentials.createFromMetadataGenerator(function(args
 const creds = grpc.credentials.combineChannelCredentials(sslCreds, macaroonCreds);
 const lightning = new lnrpc.Lightning(program['lnd.rpcserver'], creds);
 
+var ownNodeKey = "";
+
+var request = {}
+lightning.getInfo(request, function(err, response) {
+    if (!err) {
+        ownNodeKey = response.identity_pubkey;
+        console.log("own node pubkey: " + ownNodeKey);
+    } else {
+        console.log(err);
+    }
+});
+
 var request = {}
 lightning.forwardingHistory(request, function(err, response) {
     console.log(response);
+    var forwards = {}
+    for (var n in response.forwarding_events) {
+        var event = response.forwarding_events[n];
+        fromChannel = event.chan_id_in + ' ';
+        toChannel = ' ' + event.chan_id_out;
+        amount = 0.01 * parseInt(event.amt_out);
+        key = fromChannel + toChannel;
+        value = [fromChannel, toChannel, amount + (((forwards[key] || 0)[2]) || 0.0)];
+        forwards[key] = value;
+    }
+    console.log(forwards);
+
+    var data = [];
+    for (var k in forwards) {
+        data.push(forwards[k]);
+    }
+    console.log(data);
+
 });
