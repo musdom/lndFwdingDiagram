@@ -1,3 +1,25 @@
+// MIT License
+
+// Copyright (c) 2018 Hans-Peter Bock
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 const fs = require('fs');
 const grpc = require('grpc');
 const lnrpc = grpc.load('rpc.proto').lnrpc;
@@ -5,12 +27,11 @@ const express = require('express');
 
 const program = require('commander');
 program
-    .version('1.0.0', '-v, --version')
     .description('plot a sankey diagram of the forwarding history')
-    .option('--lnd.macaroon [base64|path]', 'Base64 encoded string or path to macaroon', process.env.LND_MACAROON || '/root/.lnd/invoice.macaroon')
-    .option('--lnd.rpccert [base64|path]', 'Base64 encoded string or path to TLS certificate for lnd\'s RPC services', process.env.LND_RPC_CERT || '/root/.lnd/tls.cert')
+    .option('--lnd.macaroon [base64|path]', 'Base64 encoded string or path to macaroon', process.env.LND_MACAROON || '~/.lnd/data/chain/bitcoin/testnet/readonly.macaroon')
+    .option('--lnd.rpccert [base64|path]', 'Base64 encoded string or path to TLS certificate for lnd\'s RPC services', process.env.LND_RPC_CERT || '~/.lnd/tls.cert')
     .option('--lnd.rpcserver [server]', 'Interface/port to lnd\'s RPC services', process.env.LND_RPC_SERVER || 'localhost:10009')
-    .option('--listen [server]', 'Interface/port to the web app', process.env.LISTEN || 'localhost:3000')
+    .option('--port [port]', 'port to the web app', process.env.LISTEN || '4201')
     .parse(process.argv)
 
 let lndMacaroon
@@ -72,10 +93,7 @@ app.get('/data', function(req, res, next) {
 });
 
 function getSankeyData(callback) {
-    var request = {
-        start_time: 0,
-        end_time: 1544821300
-    }
+    var request = {}
     lightning.forwardingHistory(request, function(err, response) {
         if (err) {
             callback(err);
@@ -83,8 +101,8 @@ function getSankeyData(callback) {
             var forwards = {}
             for (var n in response.forwarding_events) {
                 var event = response.forwarding_events[n];
-                fromChannel = event.chan_id_in + ' ';
-                toChannel = ' ' + event.chan_id_out;
+                fromChannel = event.chan_id_in + '-';
+                toChannel = '-' + event.chan_id_out;
                 amount = 0.01 * parseInt(event.amt_out);
                 key = fromChannel + toChannel;
                 value = [fromChannel, toChannel, amount + (((forwards[key] || 0)[2]) || 0.0)];
@@ -99,4 +117,4 @@ function getSankeyData(callback) {
         }
     });
 }
-server.listen(4201);
+server.listen(program['port']);
