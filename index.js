@@ -93,7 +93,12 @@ app.get('/data', function(req, res, next) {
 });
 
 function getSankeyData(callback) {
-    var request = {}
+    var request = {
+        start_time: 1514764800, 
+        end_time: Date.now(), 
+        index_offset: 0, 
+        num_max_events: 0, 
+    }
     lightning.forwardingHistory(request, function(err, response) {
         if (err) {
             callback(err);
