@@ -103,6 +103,7 @@ function getSankeyData(callback) {
         if (err) {
             callback(err);
         } else {
+            console.dir(response, {colors:true});
             var forwards = {}
             for (var n in response.forwarding_events) {
                 var event = response.forwarding_events[n];
